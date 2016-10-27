@@ -37,6 +37,8 @@ nv.models.forceDirectedGraph = function() {
         renderWatch.reset();
 
         selection.each(function(data) {
+            debugger;
+            
           container = d3.select(this);
           nv.utils.initSVG(container);
 
@@ -44,8 +46,11 @@ nv.models.forceDirectedGraph = function() {
               availableHeight = nv.utils.availableHeight(height, container, margin);
 
           container
-                  .attr("width", availableWidth)
-                  .attr("height", availableHeight);
+            .attr("width", availableWidth)
+            .attr("height", availableHeight)
+            .call(d3.behavior.zoom().on("zoom", function () {
+                zoomlayer.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+            }));
 
           // Display No Data message if there's nothing to show.
           if (!data || !data.links || !data.nodes) {
@@ -78,13 +83,24 @@ nv.models.forceDirectedGraph = function() {
                 .alpha(alpha)
                 .start();
 
-          var link = container.selectAll(".link")
+          var zoomlayer  = container
+                .append("g")
+                .attr("class", "zoomlayer")
+                .attr("transform", "translate(" + margin.left + "," + margin.right + ")");
+
+          var link = container.select('.zoomlayer')
+                .append("g")
+                .attr("class", "links")
+                .selectAll(".link")
                 .data(data.links)
                 .enter().append("line")
                 .attr("class", "nv-force-link")
                 .style("stroke-width", function(d) { return Math.sqrt(d.value); });
 
-          var node = container.selectAll(".node")
+          var node = container.select('.zoomlayer')
+                .append("g")
+                .attr("class", "nodes")
+                .selectAll(".node")
                 .data(data.nodes)
                 .enter()
                 .append("g")

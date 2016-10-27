@@ -1,4 +1,4 @@
-/* nvd3 version 1.8.4-dev (https://github.com/novus/nvd3) 2016-10-02 */
+/* nvd3 version 1.8.4-dev (https://github.com/novus/nvd3) 2016-10-27 */
 (function(){
 
 // set up main nv object
@@ -4745,11 +4745,7 @@ nv.models.focus = function(content) {
 
             brush.on('brushend', function () {
                 if (!syncBrushing) {
-                    var extent = brush.empty() ? x.domain() : brush.extent();
-                    if (Math.abs(extent[0] - extent[1]) <= 1) {
-                        return;
-                    }
-                    dispatch.onBrush(extent);
+                    dispatch.onBrush(brush.empty() ? x.domain() : brush.extent());
                 }
             });
 
@@ -4854,12 +4850,6 @@ nv.models.focus = function(content) {
             function onBrush(shouldDispatch) {
                 brushExtent = brush.empty() ? null : brush.extent();
                 var extent = brush.empty() ? x.domain() : brush.extent();
-
-                //The brush extent cannot be less than one.  If it is, don't update the line chart.
-                if (Math.abs(extent[0] - extent[1]) <= 1) {
-                    return;
-                }
-
                 dispatch.brush({extent: extent, brush: brush});
                 updateBrushBG();
                 if (shouldDispatch) {
@@ -4981,6 +4971,8 @@ nv.models.forceDirectedGraph = function() {
         renderWatch.reset();
 
         selection.each(function(data) {
+            debugger;
+            
           container = d3.select(this);
           nv.utils.initSVG(container);
 
@@ -4988,8 +4980,11 @@ nv.models.forceDirectedGraph = function() {
               availableHeight = nv.utils.availableHeight(height, container, margin);
 
           container
-                  .attr("width", availableWidth)
-                  .attr("height", availableHeight);
+            .attr("width", availableWidth)
+            .attr("height", availableHeight)
+            .call(d3.behavior.zoom().on("zoom", function () {
+                zoomlayer.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+            }));
 
           // Display No Data message if there's nothing to show.
           if (!data || !data.links || !data.nodes) {
@@ -5022,13 +5017,24 @@ nv.models.forceDirectedGraph = function() {
                 .alpha(alpha)
                 .start();
 
-          var link = container.selectAll(".link")
+          var zoomlayer  = container
+                .append("g")
+                .attr("class", "zoomlayer")
+                .attr("transform", "translate(" + margin.left + "," + margin.right + ")");
+
+          var link = container.select('.zoomlayer')
+                .append("g")
+                .attr("class", "links")
+                .selectAll(".link")
                 .data(data.links)
                 .enter().append("line")
                 .attr("class", "nv-force-link")
                 .style("stroke-width", function(d) { return Math.sqrt(d.value); });
 
-          var node = container.selectAll(".node")
+          var node = container.select('.zoomlayer')
+                .append("g")
+                .attr("class", "nodes")
+                .selectAll(".node")
                 .data(data.nodes)
                 .enter()
                 .append("g")
